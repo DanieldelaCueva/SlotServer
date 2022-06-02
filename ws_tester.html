@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <style type="text/css">
+      #slotEditor__form p {
+        font-family: "Roboto Mono", sans-serif;
+        color: #9c9c9c;
+        border-bottom: 2px solid #9c9c9c;
+        border-left: 2px solid #9c9c9c;
+        border-right: 2px solid #9c9c9c;
+        margin: 0;
+        padding: 0.3% 2%;
+      }
+
+      .dataInput {
+        font-family: "Roboto ", sans-serif;
+        font-size: 18px;
+        background-color: #000000;
+        color: #5fec85;
+        border: 1px solid #5fec85;
+        text-align: center;
+        width: 8rem;
+      }
+
+      .inputLabel {
+        display: block;
+        font-family: "Roboto", sans-serif;
+        font-size: 18px;
+        text-align: center;
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+
+      .inputContainer {
+        display: inline-block;
+        width: 8rem;
+        margin: 0 0.5% 1% 0.5%;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="slotEditor__form">
+      <p>
+        <b>SLOT EDITOR</b>
+      </p>
+      <div
+        style="
+          padding-left: 1rem;
+          padding-top: 0.5rem;
+          border-left: 2px solid #9c9c9c;
+          border-right: 2px solid #9c9c9c;
+          border-bottom: 2px solid #9c9c9c;
+        "
+      >
+        <div class="inputContainer">
+          <label htmlFor="callsign" class="inputLabel"> CALLSIGN </label>
+          <input
+            type="text"
+            id="callsign"
+            name="callsign"
+            minlength="5"
+            class="dataInput"
+            ref="{callsignInput}"
+            required
+          />
+        </div>
+        <div class="inputContainer">
+          <label htmlFor="type" class="inputLabel"> TYPE </label>
+          <input
+            type="text"
+            name="type"
+            id="type"
+            minlength="4"
+            maxlength="4"
+            class="dataInput"
+            ref="{typeInput}"
+            required
+          />
+        </div>
+        <div class="inputContainer">
+          <label htmlFor="EOBT" class="inputLabel"> EOBT </label>
+          <input
+            type="time"
+            name="EOBT"
+            id="eobt"
+            class="dataInput"
+            ref="{EOBTInput}"
+            required
+          />
+        </div>
+        <div class="inputContainer">
+          <label htmlFor="TSAT" class="inputLabel"> TSAT </label>
+          <input
+            type="time"
+            name="TSAT"
+            id="tsat"
+            class="dataInput"
+            ref="{TSATInput}"
+            required
+          />
+        </div>
+        <div class="inputContainer">
+          <label htmlFor="destination" class="inputLabel"> DEST </label>
+          <input
+            type="text"
+            name="destination"
+            id="destination"
+            minlength="4"
+            maxlength="4"
+            class="dataInput"
+            ref="{DESTInput}"
+            required
+          />
+        </div>
+        <div class="inputContainer">
+          <label htmlFor="TTOT" class="inputLabel"> TTOT </label>
+          <input
+            type="time"
+            name="TTOT"
+            id="ttot"
+            class="dataInput"
+            ref="{TTOTInput}"
+            required
+          />
+        </div>
+        <div class="inputContainer">
+          <input id="send" type="submit" value="SUBMIT" class="dataInput" />
+        </div>
+      </div>
+    </form>
+
+    <script>
+      const chatSocket = new WebSocket(
+        "ws://127.0.0.1:8000/slotstreamer/test_room/"
+      );
+
+      chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        console.log(data);
+      };
+
+      const messageSender = (e) => {
+        e.preventDefault();
+        let dataToSend = {
+          slot_list: [
+            {
+              model: "slotstreamer.slot",
+              fields: {},
+            },
+          ],
+        };
+        dataToSend["slot_list"]["pk"] =
+          document.querySelector("#callsign").value;
+        dataToSend["slot_list"][0]["fields"]["room_id"] =
+          "test_room";
+        dataToSend["slot_list"][0]["fields"]["callsign"] =
+          document.querySelector("#callsign").value;
+        dataToSend["slot_list"][0]["fields"]["type"] =
+          document.querySelector("#type").value;
+        dataToSend["slot_list"][0]["fields"]["eobt"] =
+          document.querySelector("#eobt").value;
+        dataToSend["slot_list"][0]["fields"]["tsat"] =
+          document.querySelector("#tsat").value;
+        dataToSend["slot_list"][0]["fields"]["destination"] =
+          document.querySelector("#destination").value;
+        dataToSend["slot_list"][0]["fields"]["ttot"] =
+          document.querySelector("#ttot").value;
+
+        console.log(JSON.stringify(dataToSend));
+        chatSocket.send(JSON.stringify(dataToSend));
+      };
+
+      document
+        .getElementById("slotEditor__form")
+        .addEventListener("submit", messageSender);
+    </script>
+  </body>
+</html>
