@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+from slotstreamer.models import Session
+
 # Created models
 
 class PublicToken(models.Model):
@@ -10,4 +12,4 @@ class PublicToken(models.Model):
 
 class UserAdditionalData(models.Model):
     username = models.ForeignKey(User, on_delete=models.CASCADE)
-    room = models.CharField(max_length=255, default="test_room")
+    room = models.ForeignKey(Session, on_delete=models.CASCADE)

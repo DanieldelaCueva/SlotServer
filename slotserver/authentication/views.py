@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
+from django.db import IntegrityError
 
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -13,13 +14,15 @@ from .serializers import UserSerializer
 
 from .models import PublicToken, UserAdditionalData
 
+from slotstreamer.models import Session
+
 from uuid import uuid4
 import wget
 import os
 
 
 @api_view(["GET"])
-def authOverview(request):
+def authenticationIndex(request):
     """
         URL overview endpoint
     """
@@ -119,11 +122,23 @@ def userUpload(request):
             f = file.readlines()
             for slot in range(1, len(f)):
                 slot_line = f[slot].split(",")
-                User.objects.create(
-                    username=slot_line[0], password=make_password(slot_line[1]))
-                new_user = User.objects.get(username=slot_line[0])
-                UserAdditionalData.objects.create(
-                    username=new_user, room=slot_line[2])
+                try:
+                    room = Session.objects.get(room_id=slot_line[2])
+                    User.objects.create(
+                        username=slot_line[0], password=make_password(slot_line[1]))
+                    new_user = User.objects.get(username=slot_line[0])
+                    UserAdditionalData.objects.create(
+                        username=new_user, room=room)
+                except Session.DoesNotExist:
+                    os.remove(temp_csv_file)
+                    return Response({
+                        "error": "The session id doesn't exist"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                except IntegrityError:
+                    os.remove(temp_csv_file)
+                    return Response({
+                        "error": "User already exists"
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
         os.remove(temp_csv_file)
 
@@ -156,8 +171,14 @@ def userDelete(request):
             f = file.readlines()
             for slot in range(1, len(f)):
                 slot_line = f[slot].split(",")
-                user = User.objects.get(username=slot_line[0])
-                user.delete()
+                try:
+                    user = User.objects.get(username=slot_line[0])
+                    user.delete()
+                except User.DoesNotExist:
+                    os.remove(temp_csv_file)
+                    return Response({
+                        "error": "Trying to delete unexisting user"
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
         os.remove(temp_csv_file)
 
