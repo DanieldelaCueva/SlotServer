@@ -55,12 +55,13 @@ def authenticateUser(request):
         PublicToken.objects.create(
             username=user, public_token=public_token, private_token=private_token)
 
-        user_room = UserAdditionalData.objects.get(username=user).room
+        user_additional_data = UserAdditionalData.objects.get(username=user)
         return Response({
             "username": username,
             "private_token": str(private_token),
             "public_token": str(public_token),
-            "room": str(user_room),
+            "room": str(user_additional_data.room),
+            "is_admin": str(user_additional_data.is_admin)
         }, status=status.HTTP_200_OK)
     else:
         return Response({

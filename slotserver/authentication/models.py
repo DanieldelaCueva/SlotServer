@@ -13,3 +13,4 @@ class PublicToken(models.Model):
 class UserAdditionalData(models.Model):
     username = models.ForeignKey(User, on_delete=models.CASCADE)
     room = models.ForeignKey(Session, on_delete=models.CASCADE)
+    is_admin = models.BooleanField(default=False)
