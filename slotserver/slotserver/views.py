@@ -11,14 +11,8 @@ def index(request):
 
     return Response({
         "Applications": {
-            "SlotStreamer": {
-                "Url overview": "/",
-                "Connect to WS": "connect/<str:room_id>/",
-                "Upload Slots": "/slot-upload/ [AUTHENTICATION REQUIRED]",
-                "Delete Slots": "/slot-delete/ [AUTHENTICATION REQUIRED]",
-                "Create Session": "/create-session/ [AUTHENTICATION REQUIRED]",
-                "Delete Session": "/delete-session/ [AUTHENTICATION REQUIRED]",
-                "Get Sessions": "/get-sessions/ [AUTHENTICATION REQUIRED]"
+            "Admin": {
+                "Admin page": "/admin"
             },
             "Authentication": {
                 "Url overview": "/",
@@ -27,6 +21,15 @@ def index(request):
                 "Check User Login": "/check-login/<str:username>",
                 "Upload Users": "/user-upload/ [AUTHENTICATION REQUIRED]",
                 "Delete Users": "/user-delete/ [AUTHENTICATION REQUIRED]"
+            },
+            "SlotStreamer": {
+                "Url overview": "/",
+                "Connect to WS": "connect/<str:room_id>/",
+                "Upload Slots": "/slot-upload/ [AUTHENTICATION REQUIRED]",
+                "Delete Slots": "/slot-delete/ [AUTHENTICATION REQUIRED]",
+                "Create Session": "/create-session/ [AUTHENTICATION REQUIRED]",
+                "Delete Session": "/delete-session/ [AUTHENTICATION REQUIRED]",
+                "Get Sessions": "/get-sessions/ [AUTHENTICATION REQUIRED]"
             },
         },
         "Docs": {
