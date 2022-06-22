@@ -1,3 +1,7 @@
 from django.contrib import admin
+from .models import PublicToken, UserAdditionalData
 
-# Register your models here.
+# Registered models
+
+admin.site.register(PublicToken)
+admin.site.register(UserAdditionalData)

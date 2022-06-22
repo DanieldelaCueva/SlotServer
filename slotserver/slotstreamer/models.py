@@ -1,6 +1,6 @@
 from django.db import models
 
-# Create your models here.
+# Created models
 
 class Slot(models.Model):
     callsign = models.CharField(max_length=7, primary_key=True)
