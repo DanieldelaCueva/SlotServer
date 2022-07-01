@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
@@ -49,11 +48,15 @@ def authenticateUser(request):
     password = request.data["password"]
     user = authenticate(username=username, password=password)
     if user is not None:
-        private_token = Token.objects.create(user=user)
-        public_token = uuid4()
-        public_token = str(public_token).replace("-", "")
-        PublicToken.objects.create(
-            username=user, public_token=public_token, private_token=private_token)
+        private_token, priv_token_created = Token.objects.get_or_create(
+            user=user)
+        if priv_token_created:
+            public_token = uuid4()
+            public_token = str(public_token).replace("-", "")
+            PublicToken.objects.create(
+                username=user, public_token=public_token, private_token=private_token)
+        else:
+            public_token = PublicToken.objects.get(private_token=private_token).public_token
 
         user_additional_data = UserAdditionalData.objects.get(username=user)
         return Response({
