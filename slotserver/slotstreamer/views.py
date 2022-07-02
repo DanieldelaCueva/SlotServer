@@ -1,6 +1,9 @@
 from .models import Slot, Session
 
 from django.db import IntegrityError
+from django.contrib.auth.models import User
+
+from authentication.models import UserAdditionalData
 
 import os
 
@@ -29,7 +32,8 @@ def slotStreamerIndex(request):
             "Delete Slots": "/slot-delete/ [AUTHENTICATION REQUIRED]",
             "Create Session": "/create-session/ [AUTHENTICATION REQUIRED]",
             "Delete Session": "/delete-session/ [AUTHENTICATION REQUIRED]",
-            "Get Sessions": "/get-sessions/ [AUTHENTICATION REQUIRED]"
+            "Get Sessions": "/get-sessions/ [AUTHENTICATION REQUIRED]",
+            "Get Users by Session": "/get-users-by-session/<str:session_id>/ [AUTHENTICATION REQUIRED]"
         }
     }, status=status.HTTP_200_OK)
 
@@ -185,3 +189,22 @@ def getSessions(request):
     session_list = Session.objects.all()
     serializer = SessionSerializer(session_list, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getUsersBySession(request, session_id):
+    """
+    Retrieves the users for a given session from the database
+    """
+    user_add_data_for_session = UserAdditionalData.objects.filter(room=session_id).values()
+
+    user_list = []
+
+    for entry in user_add_data_for_session:
+        user = User.objects.get(id=entry["username_id"])
+        new_user = {
+            'username': user.username
+        }
+        user_list.append(new_user)
+
+    return Response(user_list, status=status.HTTP_200_OK)
