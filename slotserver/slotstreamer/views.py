@@ -33,7 +33,8 @@ def slotStreamerIndex(request):
             "Create Session": "/create-session/ [AUTHENTICATION REQUIRED]",
             "Delete Session": "/delete-session/ [AUTHENTICATION REQUIRED]",
             "Get Sessions": "/get-sessions/ [AUTHENTICATION REQUIRED]",
-            "Get Users by Session": "/get-users-by-session/<str:session_id>/ [AUTHENTICATION REQUIRED]"
+            "Get Users by Session": "/get-users-by-session/<str:session_id>/ [AUTHENTICATION REQUIRED]",
+            "Get Slots by Session": "/get-slots-by-session/<str:session_id>/ [AUTHENTICATION REQUIRED]"
         }
     }, status=status.HTTP_200_OK)
 
@@ -208,3 +209,14 @@ def getUsersBySession(request, session_id):
         user_list.append(new_user)
 
     return Response(user_list, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getSlotsBySession(request, session_id):
+    """
+    Retrieves the users for a given session from the database
+    """
+    slot_list = Slot.objects.filter(room_id=session_id).values()
+
+    return Response(slot_list, status=status.HTTP_200_OK)

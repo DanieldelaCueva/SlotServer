@@ -10,5 +10,6 @@ urlpatterns = [
     path("create-session", views.createSession, name='create-session'),
     path("delete-session", views.deleteSession, name='delete-session'),
     path("get-sessions", views.getSessions, name='get-sessions'),
-    path("get-users-by-session/<str:session_id>", views.getUsersBySession, name='get-users-by-session')
+    path("get-users-by-session/<str:session_id>", views.getUsersBySession, name='get-users-by-session'),
+    path("get-slots-by-session/<str:session_id>", views.getSlotsBySession, name='get-slots-by-session')
 ]

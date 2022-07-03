@@ -30,7 +30,8 @@ def index(request):
                 "Create Session": "/create-session/ [AUTHENTICATION REQUIRED]",
                 "Delete Session": "/delete-session/ [AUTHENTICATION REQUIRED]",
                 "Get Sessions": "/get-sessions/ [AUTHENTICATION REQUIRED]",
-                "Get Users by Session": "/get-users-by-session/<str:session_id>/ [AUTHENTICATION REQUIRED]"
+                "Get Users by Session": "/get-users-by-session/<str:session_id>/ [AUTHENTICATION REQUIRED]",
+                "Get Slots by Session": "/get-slots-by-session/<str:session_id>/ [AUTHENTICATION REQUIRED]"
             },
         },
         "Docs": {
