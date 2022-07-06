@@ -125,7 +125,7 @@ def userUpload(request):
         with open(temp_csv_file, "r") as file:
             f = file.readlines()
             for slot in range(1, len(f)):
-                slot_line = f[slot].split(",")
+                slot_line = f[slot].split(";")
                 try:
                     room = Session.objects.get(room_id=slot_line[2])
                     User.objects.create(
@@ -139,10 +139,14 @@ def userUpload(request):
                         "error": "The session id doesn't exist"
                     }, status=status.HTTP_400_BAD_REQUEST)
                 except IntegrityError:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "User already exists"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                    existing_user = User.objects.get(username=slot_line[0])
+                    existing_user.delete()
+
+                    User.objects.create(
+                        username=slot_line[0], password=make_password(slot_line[1]))
+                    new_user = User.objects.get(username=slot_line[0])
+                    UserAdditionalData.objects.create(
+                        username=new_user, room=room)
 
         os.remove(temp_csv_file)
 
@@ -174,15 +178,12 @@ def userDelete(request):
         with open(temp_csv_file, "r") as file:
             f = file.readlines()
             for slot in range(1, len(f)):
-                slot_line = f[slot].split(",")
+                slot_line = f[slot].split(";")
                 try:
                     user = User.objects.get(username=slot_line[0])
                     user.delete()
                 except User.DoesNotExist:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "Trying to delete unexisting user"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                    pass
 
         os.remove(temp_csv_file)
 
