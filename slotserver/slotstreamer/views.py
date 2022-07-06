@@ -73,9 +73,16 @@ def slotUpload(request):
             with open(temp_csv_file, "r") as file:
                 f = file.readlines()
                 for slot in range(1, len(f)):
-                    slot_line = f[slot].split(",")
-                    Slot.objects.create(callsign=slot_line[0], type=slot_line[1], eobt=slot_line[2],
-                                        tsat=slot_line[3], destination=slot_line[4], ttot=slot_line[5], room_id=session)
+                    slot_line = f[slot].split(";")
+                    try:
+                        Slot.objects.create(callsign=slot_line[0], type=slot_line[1], eobt=slot_line[2],
+                                            tsat=slot_line[3], destination=slot_line[4], ttot=slot_line[5], room_id=session)
+                    except IntegrityError:
+                        existing_slot = Slot.objects.get(callsign=slot_line[0])
+                        existing_slot.delete()
+
+                        Slot.objects.create(callsign=slot_line[0], type=slot_line[1], eobt=slot_line[2],
+                                            tsat=slot_line[3], destination=slot_line[4], ttot=slot_line[5], room_id=session)
 
             os.remove(temp_csv_file)
 
@@ -112,20 +119,12 @@ def slotDelete(request):
         with open(temp_csv_file, "r") as file:
             f = file.readlines()
             for slot in range(1, len(f)):
-                slot_line = f[slot].split(",")
+                slot_line = f[slot].split(";")
                 try:
                     selected_slot = Slot.objects.get(callsign=slot_line[0])
                     selected_slot.delete()
                 except Slot.DoesNotExist:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "Trying to delete unexisting slot"
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                except IntegrityError:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "User already exists"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                    pass
 
         os.remove(temp_csv_file)
 
