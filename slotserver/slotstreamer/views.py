@@ -157,6 +157,7 @@ def createSession(request):
         Cretes a new session in the database
     """
     room_id = uuid4()
+    room_id = str(room_id).replace('-', '')
     session_name = request.data['session_name']
 
     try:
