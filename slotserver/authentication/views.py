@@ -130,7 +130,7 @@ def userUpload(request):
                 for slot in range(1, len(f)):
                     slot_line = f[slot].split(";")
                     try:
-                        room = Session.objects.get(room_id=slot_line[2])
+                        room = Session.objects.get(room_id=request.data['room'])
                         User.objects.create(
                             username=slot_line[0], password=make_password(slot_line[1]))
                         new_user = User.objects.get(username=slot_line[0])
