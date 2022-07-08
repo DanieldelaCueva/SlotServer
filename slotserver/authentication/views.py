@@ -20,6 +20,8 @@ from uuid import uuid4
 import wget
 import os
 
+import csv
+
 
 @api_view(["GET"])
 def authenticationIndex(request):
@@ -57,7 +59,8 @@ def authenticateUser(request):
             PublicToken.objects.create(
                 username=user, public_token=public_token, private_token=private_token)
         else:
-            public_token = PublicToken.objects.get(private_token=private_token).public_token
+            public_token = PublicToken.objects.get(
+                private_token=private_token).public_token
 
         user_additional_data = UserAdditionalData.objects.get(username=user)
         return Response({
@@ -126,14 +129,13 @@ def userUpload(request):
 
         if local_file_name[-4::] == ".csv":
             with open(temp_csv_file, "r") as file:
-                f = file.readlines()
-                for slot in range(1, len(f)):
-                    slot_line = f[slot].split(";")
+                reader = csv.reader(file, delimiter=";")
+                for row in list(reader)[1:]:
                     try:
                         room = Session.objects.get(room_id=request.data['room'])
-                        User.objects.create(
-                            username=slot_line[0], password=make_password(slot_line[1]))
-                        new_user = User.objects.get(username=slot_line[0])
+                        User.objects.create_user(
+                            username=row[0], password=row[1])
+                        new_user = User.objects.get(username=row[0])
                         UserAdditionalData.objects.create(
                             username=new_user, room=room)
                     except Session.DoesNotExist:
@@ -142,12 +144,12 @@ def userUpload(request):
                             "error": "The session id doesn't exist"
                         }, status=status.HTTP_400_BAD_REQUEST)
                     except IntegrityError:
-                        existing_user = User.objects.get(username=slot_line[0])
+                        existing_user = User.objects.get(username=row[0])
                         existing_user.delete()
 
-                        User.objects.create(
-                            username=slot_line[0], password=make_password(slot_line[1]))
-                        new_user = User.objects.get(username=slot_line[0])
+                        User.objects.create_user(
+                            username=row[0], password=row[1])
+                        new_user = User.objects.get(username=row[0])
                         UserAdditionalData.objects.create(
                             username=new_user, room=room)
 
@@ -185,11 +187,10 @@ def userDelete(request):
 
         if local_file_name[-4::] == ".csv":
             with open(temp_csv_file, "r") as file:
-                f = file.readlines()
-                for slot in range(1, len(f)):
-                    slot_line = f[slot].split(";")
+                reader = csv.reader(file, delimiter=";")
+                for row in list(reader)[1::]:
                     try:
-                        user = User.objects.get(username=slot_line[0])
+                        user = User.objects.get(username=row[0])
                         user.delete()
                     except User.DoesNotExist:
                         pass

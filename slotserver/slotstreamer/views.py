@@ -12,6 +12,8 @@ from uuid import uuid4
 
 import wget
 
+import csv
+
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
@@ -72,18 +74,17 @@ def slotUpload(request):
 
         if local_file_name[-4::] == ".csv":
             with open(temp_csv_file, "r") as file:
-                f = file.readlines()
-                for slot in range(1, len(f)):
-                    slot_line = f[slot].split(";")
+                reader = csv.reader(file, delimiter=";")
+                for row in list(reader)[1::]:
                     try:
-                        Slot.objects.create(callsign=slot_line[0], type=slot_line[1], eobt=slot_line[2],
-                                            tsat=slot_line[3], destination=slot_line[4], ttot=slot_line[5], room_id=session)
+                        Slot.objects.create(callsign=row[0], type=row[1], eobt=row[2],
+                                            tsat=row[3], destination=row[4], ttot=row[5], room_id=session)
                     except IntegrityError:
-                        existing_slot = Slot.objects.get(callsign=slot_line[0])
+                        existing_slot = Slot.objects.get(callsign=row[0])
                         existing_slot.delete()
 
-                        Slot.objects.create(callsign=slot_line[0], type=slot_line[1], eobt=slot_line[2],
-                                            tsat=slot_line[3], destination=slot_line[4], ttot=slot_line[5], room_id=session)
+                        Slot.objects.create(callsign=row[0], type=row[1], eobt=row[2],
+                                            tsat=row[3], destination=row[4], ttot=row[5], room_id=session)
 
             os.remove(temp_csv_file)
 
@@ -125,11 +126,10 @@ def slotDelete(request):
         if local_file_name[-4::] == ".csv":
 
             with open(temp_csv_file, "r") as file:
-                f = file.readlines()
-                for slot in range(1, len(f)):
-                    slot_line = f[slot].split(";")
+                reader = csv.reader(file, delimiter=";")
+                for row in list(reader)[1::]:
                     try:
-                        selected_slot = Slot.objects.get(callsign=slot_line[0])
+                        selected_slot = Slot.objects.get(callsign=row[0])
                         selected_slot.delete()
                     except Slot.DoesNotExist:
                         pass
