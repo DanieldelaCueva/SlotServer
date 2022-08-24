@@ -1,3 +1,4 @@
+from urllib.error import HTTPError
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
@@ -18,6 +19,8 @@ from slotstreamer.models import Session
 from uuid import uuid4
 import wget
 import os
+
+import csv
 
 
 @api_view(["GET"])
@@ -56,7 +59,8 @@ def authenticateUser(request):
             PublicToken.objects.create(
                 username=user, public_token=public_token, private_token=private_token)
         else:
-            public_token = PublicToken.objects.get(private_token=private_token).public_token
+            public_token = PublicToken.objects.get(
+                private_token=private_token).public_token
 
         user_additional_data = UserAdditionalData.objects.get(username=user)
         return Response({
@@ -113,47 +117,56 @@ def userUpload(request):
     """
     Reads users from a csv file and uploads them to the database
     """
-    user_file_url = request.data["user_file_url"]
 
-    temp_csv_file = wget.download(user_file_url, os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "temp"))
+    try:
+        user_file_url = request.data["user_file_url"]
 
-    local_file_name = os.listdir(os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "temp"))[0]
+        temp_csv_file = wget.download(user_file_url, os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "temp"))
 
-    if local_file_name[-4::] == ".csv":
-        with open(temp_csv_file, "r") as file:
-            f = file.readlines()
-            for slot in range(1, len(f)):
-                slot_line = f[slot].split(",")
-                try:
-                    room = Session.objects.get(room_id=slot_line[2])
-                    User.objects.create(
-                        username=slot_line[0], password=make_password(slot_line[1]))
-                    new_user = User.objects.get(username=slot_line[0])
-                    UserAdditionalData.objects.create(
-                        username=new_user, room=room)
-                except Session.DoesNotExist:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "The session id doesn't exist"
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                except IntegrityError:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "User already exists"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+        local_file_name = os.listdir(os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "temp"))[0]
 
-        os.remove(temp_csv_file)
+        if local_file_name[-4::] == ".csv":
+            with open(temp_csv_file, "r") as file:
+                reader = csv.reader(file, delimiter=";")
+                for row in list(reader)[1:]:
+                    try:
+                        room = Session.objects.get(room_id=request.data['room'])
+                        User.objects.create_user(
+                            username=row[0], password=row[1])
+                        new_user = User.objects.get(username=row[0])
+                        UserAdditionalData.objects.create(
+                            username=new_user, room=room)
+                    except Session.DoesNotExist:
+                        os.remove(temp_csv_file)
+                        return Response({
+                            "error": "The session id doesn't exist"
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    except IntegrityError:
+                        existing_user = User.objects.get(username=row[0])
+                        existing_user.delete()
 
+                        User.objects.create_user(
+                            username=row[0], password=row[1])
+                        new_user = User.objects.get(username=row[0])
+                        UserAdditionalData.objects.create(
+                            username=new_user, room=room)
+
+            os.remove(temp_csv_file)
+
+            return Response({
+                "operation_result": "Users uploaded successfully"
+            }, status=status.HTTP_200_OK)
+
+        else:
+            return Response({
+                "operation_result": "Error. Wrong file extension, .csv required"
+            }, status=status.HTTP_406_NOT_ACCEPTABLE)
+    except HTTPError:
         return Response({
-            "operation_result": "Users uploaded successfully"
-        }, status=status.HTTP_200_OK)
-
-    else:
-        return Response({
-            "operation_result": "Error. Wrong file extension, .csv required"
-        }, status=status.HTTP_406_NOT_ACCEPTABLE)
+            "operation_result": "Error. The file was not found"
+        }, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(["POST"])
@@ -162,34 +175,36 @@ def userDelete(request):
     """
     Reads users from a csv file and deletes them from the database
     """
-    user_file_url = request.data["user_file_url"]
 
-    temp_csv_file = wget.download(user_file_url, os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "temp"))
+    try:
+        user_file_url = request.data["user_file_url"]
 
-    local_file_name = os.listdir(os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "temp"))[0]
+        temp_csv_file = wget.download(user_file_url, os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "temp"))
 
-    if local_file_name[-4::] == ".csv":
-        with open(temp_csv_file, "r") as file:
-            f = file.readlines()
-            for slot in range(1, len(f)):
-                slot_line = f[slot].split(",")
-                try:
-                    user = User.objects.get(username=slot_line[0])
-                    user.delete()
-                except User.DoesNotExist:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "Trying to delete unexisting user"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+        local_file_name = os.listdir(os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "temp"))[0]
 
-        os.remove(temp_csv_file)
+        if local_file_name[-4::] == ".csv":
+            with open(temp_csv_file, "r") as file:
+                reader = csv.reader(file, delimiter=";")
+                for row in list(reader)[1::]:
+                    try:
+                        user = User.objects.get(username=row[0])
+                        user.delete()
+                    except User.DoesNotExist:
+                        pass
 
+            os.remove(temp_csv_file)
+
+            return Response({
+                "operation_result": "Users deleted successfully"
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "operation_result": "Error. Wrong file extension, .csv required"
+            }, status=status.HTTP_406_NOT_ACCEPTABLE)
+    except HTTPError:
         return Response({
-            "operation_result": "Users deleted successfully"
-        }, status=status.HTTP_200_OK)
-    else:
-        return Response({
-            "operation_result": "Error. Wrong file extension, .csv required"
-        }, status=status.HTTP_406_NOT_ACCEPTABLE)
+            "operation_result": "Error. The file was not found"
+        }, status=status.HTTP_404_NOT_FOUND)

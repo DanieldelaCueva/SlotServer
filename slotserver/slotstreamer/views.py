@@ -1,3 +1,4 @@
+from urllib.error import HTTPError
 from .models import Slot, Session
 
 from django.db import IntegrityError
@@ -10,6 +11,8 @@ import os
 from uuid import uuid4
 
 import wget
+
+import csv
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -71,11 +74,17 @@ def slotUpload(request):
 
         if local_file_name[-4::] == ".csv":
             with open(temp_csv_file, "r") as file:
-                f = file.readlines()
-                for slot in range(1, len(f)):
-                    slot_line = f[slot].split(",")
-                    Slot.objects.create(callsign=slot_line[0], type=slot_line[1], eobt=slot_line[2],
-                                        tsat=slot_line[3], destination=slot_line[4], ttot=slot_line[5], room_id=session)
+                reader = csv.reader(file, delimiter=";")
+                for row in list(reader)[1::]:
+                    try:
+                        Slot.objects.create(callsign=row[0], type=row[1], eobt=row[2],
+                                            tsat=row[3], destination=row[4], ttot=row[5], room_id=session)
+                    except IntegrityError:
+                        existing_slot = Slot.objects.get(callsign=row[0])
+                        existing_slot.delete()
+
+                        Slot.objects.create(callsign=row[0], type=row[1], eobt=row[2],
+                                            tsat=row[3], destination=row[4], ttot=row[5], room_id=session)
 
             os.remove(temp_csv_file)
 
@@ -92,6 +101,11 @@ def slotUpload(request):
             "operation_result": "Error. The session id doesn't exist"
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    except HTTPError:
+        return Response({
+            "operation_result": "Error. The file was not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -99,44 +113,41 @@ def slotDelete(request):
     """
     Reads slots from a csv file and deletes them from the database
     """
-    slot_file_url = request.data['slot_file_url']
 
-    temp_csv_file = wget.download(slot_file_url, os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "temp"))
+    try:
+        slot_file_url = request.data['slot_file_url']
 
-    local_file_name = os.listdir(os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "temp"))[0]
+        temp_csv_file = wget.download(slot_file_url, os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "temp"))
 
-    if local_file_name[-4::] == ".csv":
+        local_file_name = os.listdir(os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "temp"))[0]
 
-        with open(temp_csv_file, "r") as file:
-            f = file.readlines()
-            for slot in range(1, len(f)):
-                slot_line = f[slot].split(",")
-                try:
-                    selected_slot = Slot.objects.get(callsign=slot_line[0])
-                    selected_slot.delete()
-                except Slot.DoesNotExist:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "Trying to delete unexisting slot"
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                except IntegrityError:
-                    os.remove(temp_csv_file)
-                    return Response({
-                        "error": "User already exists"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+        if local_file_name[-4::] == ".csv":
 
-        os.remove(temp_csv_file)
+            with open(temp_csv_file, "r") as file:
+                reader = csv.reader(file, delimiter=";")
+                for row in list(reader)[1::]:
+                    try:
+                        selected_slot = Slot.objects.get(callsign=row[0])
+                        selected_slot.delete()
+                    except Slot.DoesNotExist:
+                        pass
 
+            os.remove(temp_csv_file)
+
+            return Response({
+                "operation_result": "Slots deleted successfully"
+            }, status=status.HTTP_200_OK)
+
+        else:
+            return Response({
+                "operation_result": "Error. Wrong file extension, .csv required"
+            }, status=status.HTTP_406_NOT_ACCEPTABLE)
+    except HTTPError:
         return Response({
-            "operation_result": "Slots deleted successfully"
-        }, status=status.HTTP_200_OK)
-
-    else:
-        return Response({
-            "operation_result": "Error. Wrong file extension, .csv required"
-        }, status=status.HTTP_406_NOT_ACCEPTABLE)
+            "operation_result": "Error. The file was not found"
+        }, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
@@ -146,6 +157,7 @@ def createSession(request):
         Cretes a new session in the database
     """
     room_id = uuid4()
+    room_id = str(room_id).replace('-', '')
     session_name = request.data['session_name']
 
     try:
