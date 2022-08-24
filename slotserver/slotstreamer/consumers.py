@@ -23,6 +23,11 @@ class SlotStreamerConsumer(AsyncWebsocketConsumer):
             deserialized_obj.save()
 
     @database_sync_to_async
+    def _get_slot_by_pk(self, pk):
+        slot = Slot.objects.get(pk=pk)
+        return slot
+
+    @database_sync_to_async
     def token_is_provided(self, token):
         try:
             provided_token = PublicToken.objects.get(public_token=token)
@@ -69,6 +74,7 @@ class SlotStreamerConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
+        
         slot_list = text_data_json['slot_list']
 
         slot_list_json = json.dumps(slot_list)
