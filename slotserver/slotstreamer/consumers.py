@@ -69,7 +69,7 @@ class SlotStreamerConsumer(AsyncWebsocketConsumer):
     async def websocket_disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.room_group_id,
-            self.channel_name
+            self.scope['url_route']['kwargs']['public_token']
         )
 
     async def receive(self, text_data):
