@@ -82,8 +82,12 @@ WSGI_APPLICATION = 'slotserver.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'slotserver-database',
+        'USER': 'admin',
+        'PASSWORD': 'LC0zHqWYalqIHwn3isTm',
+        'HOST': 'slotserver-database.c4pmgc0knjez.eu-west-3.rds.amazonaws.com',
+        'PORT': ''
     }
 }
 
